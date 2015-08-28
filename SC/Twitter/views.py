@@ -7,7 +7,7 @@ from django.contrib.auth.models import User
 from .models import UsuarioTwitter
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-
+    
 consumer = oauth2.Consumer(settings.TWITTER_CONSUMER_KEY,
                            settings.TWITTER_CONSUMER_SECRET)
 client = oauth2.Client(consumer)
@@ -18,6 +18,9 @@ access_token_url = 'https://api.twitter.com/oauth/access_token'
 
 # This is the slightly different URL used to authenticate/authorize.
 authenticate_url = 'https://api.twitter.com/oauth/authenticate'
+
+def main(request):
+    return twitter_authenticated(request=request, token = request.GET.get('oauth_verifier'))
 
 
 # Create your views here.
@@ -45,8 +48,8 @@ def twitter_logout(request):
     return HttpResponseRedirect('/')
 
 
-def twitter_authenticated(request):
-    print request.GET
+def twitter_authenticated(request,token=None):
+    print request.GET.get('oauth_verifier')
     # pin = request.GET.get('pin')
     # if not pin:
         # return render(request, 'twitter/pin.html', {})
@@ -56,15 +59,16 @@ def twitter_authenticated(request):
     token = oauth2.Token(request.session['request_token']['oauth_token'],
                          request.session['request_token']
                          ['oauth_token_secret'])
-    token.set_verifier(request.GET.get('oauth_verifier'))
+    if token:
+        token.set_verifier(token)
+    else:
+        token.set_verifier(request.GET.get('oauth_verifier'))
     # token.set_verifier(request.GET.get('pin'))
     client = oauth2.Client(consumer, token)
 
     # Step 2. Request the authorized access token from Twitter.
     resp, content = client.request(access_token_url, method="GET",
                                    body="", headers=None)
-    print resp
-    print content
     if resp['status'] != '200':
         raise Exception("Invalid response from Twitter.")
 
