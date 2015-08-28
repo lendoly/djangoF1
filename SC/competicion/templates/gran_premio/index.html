@@ -1,0 +1,9 @@
+{% if grandes_premios %}
+    <ul>
+    {% for gran_premio in grandes_premios %}
+        <li><a href="./{{ gran_premio.id }}/">{{ gran_premio }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No hay grandes premios disponibles.</p>
+{% endif %}

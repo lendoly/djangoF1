@@ -1,0 +1,9 @@
+{% if cricuitos_list %}
+    <ul>
+    {% for circuito in cricuitos_list %}
+        <li><a href="./{{ circuito.id }}/">{{ circuito }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No hay circuitos disponibles.</p>
+{% endif %}

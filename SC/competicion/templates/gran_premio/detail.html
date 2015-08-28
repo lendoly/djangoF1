@@ -1,0 +1,5 @@
+{% if gran_premio %}
+	<h1> {{ gran_premio.circuito }} - {{ gran_premio.fecha }} </h1>
+{% else %}
+    <p>Error en el gran premio seleccionado con el id: {{gran_premio_id}}.</p>
+{% endif %}
