@@ -16,10 +16,16 @@ Including another URLconf
 from django.conf.urls import include, url
 from django.contrib import admin
 from Twitter import views
+from Twitter.views import twitter_login, twitter_logout, \
+    twitter_authenticated
+
+admin.autodiscover()
 
 urlpatterns = [
-    url(r'^$',views.main),
+    url(r'^$', views.main),
+    url(r'^admin/doc/', include('django.contrib.admindocs.urls')),
     url(r'^admin/', include(admin.site.urls)),
-    url(r'^competicion/', include('competicion.urls')),
-    url(r'^login_twitter/', include('Twitter.urls')),
+    url(r'^login/?$', twitter_login),
+    url(r'^logout/?$', twitter_logout),
+    url(r'^login/authenticated/?$', twitter_authenticated),
 ]
