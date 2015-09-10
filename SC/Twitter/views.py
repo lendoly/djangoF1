@@ -4,23 +4,27 @@ from SC import settings
 import cgi
 from django.http import HttpResponseRedirect
 from django.contrib.auth.models import User
-from .models import UsuarioTwitter
+from .models import *
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-    
+import twitter
+
+
 consumer = oauth2.Consumer(settings.TWITTER_CONSUMER_KEY,
                            settings.TWITTER_CONSUMER_SECRET)
 client = oauth2.Client(consumer)
-
-
 request_token_url = 'https://api.twitter.com/oauth/request_token'
 access_token_url = 'https://api.twitter.com/oauth/access_token'
+
+user_token = '437917901-jELffeQT3cw72vsppznaM0YGuHM2sYffW46BoqNA'
+user_token_secret = 'xDcFUFcXE7QnCqsEdQLwK1Zr3VQNUgtE0kfcmTaajavsh'
 
 # This is the slightly different URL used to authenticate/authorize.
 authenticate_url = 'https://api.twitter.com/oauth/authenticate'
 
+
 def main(request):
-    return twitter_authenticated(request=request, token = request.GET.get('oauth_verifier'))
+    return twitter_authenticated(request=request, token=request.GET.get('oauth_verifier'))
 
 
 # Create your views here.
@@ -48,21 +52,47 @@ def twitter_logout(request):
     return HttpResponseRedirect('/')
 
 
-def twitter_authenticated(request,token=None):
+def busca(busqueda):
+    t = twitter.Twitter(domain="api.twitter.com", api_version='1.1',
+                        auth=twitter.oauth.OAuth(user_token, user_token_secret,
+                                                 settings.TWITTER_CONSUMER_SECRET,
+                                                 settings.TWITTER_CONSUMER_KEY))
+    json = t.search.tweets(q=busqueda, count=100)
+    parse_twiter(json)
+
+
+def parse_twitter(json):
+    for result in json['statuses']:
+        try:
+            tweet = Tweet()
+            tweet.id_tweet = result['id']
+            tweet.mensaje = str(result["text"].encode('utf-8', 'ignore')).replace("&amp;", "&").decode('utf-8', 'ignore')
+            tweet.unicodeToDate(result['created_at'])
+            if Usuario_Twitter.objects.filter(id_twitter=result['user']['id']).exists():
+                usuario = Usuario_Twitter.objects.get(id_twitter=result['user']['id'])
+            else:
+                usuario = Usuario_Twitter()
+                usuario.nombre = str(result["user"]["name"].encode('utf-8', 'ignore')).decode('utf-8', 'ignore')
+                usuario.screen_name = '@' + str(result["user"]["screen_name"].encode('utf-8', 'ignore')).decode('utf-8', 'ignore')
+                usuario.biografia = str(result["user"]["description"].encode('utf-8', 'ignore')).decode('utf-8', 'ignore')
+                usuario.id_twitter = result['user']['id']
+                usuario.save()
+            tweet.usuario = usuario
+            tweet.save()
+        except IntegrityError, e:
+            print ("tweet ya existe en bbdd: ", e.message)
+
+
+def twitter_authenticated(request, token=None):
     print request.GET.get('oauth_verifier')
     # pin = request.GET.get('pin')
     # if not pin:
-        # return render(request, 'twitter/pin.html', {})
+    # return render(request, 'twitter/pin.html', {})
 
     # Step 1. Use the request token in the session to build a new client.
 
-    token = oauth2.Token(request.session['request_token']['oauth_token'],
-                         request.session['request_token']
-                         ['oauth_token_secret'])
-    if token:
-        token.set_verifier(token)
-    else:
-        token.set_verifier(request.GET.get('oauth_verifier'))
+    token = oauth2.Token(user_token,
+                         user_token_secret)
     # token.set_verifier(request.GET.get('pin'))
     client = oauth2.Client(consumer, token)
 
