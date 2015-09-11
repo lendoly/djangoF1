@@ -22,8 +22,10 @@ LOGIN_URL = '/login/'
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'gn(q3b@3kn+7(b4!&6mxkl_jwt#@%(v(ae29lbo$pv8ctoe27f'
-TWITTER_CONSUMER_KEY = 'bfqXg3FSn7Wmw6OveAewC8Ae2'
-TWITTER_CONSUMER_SECRET = 'oTpox374Iu1D2kKSjcwmrCsmwrddzGN1l9oCgp1wkkU8VwewNv'
+TWITTER_CONSUMER_KEY = '2tNjfxVUzVX1snCHgjWjdZlg7'
+TWITTER_CONSUMER_SECRET = 'X0ZqnEHrz4L0PN1PvZceA7eUS4enDUr4D7NfF2lNJdDle6Ngrx'
+
+LOGIN_REDIRECT_URL = '/'
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True

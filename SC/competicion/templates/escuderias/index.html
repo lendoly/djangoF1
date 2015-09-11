@@ -1,0 +1,9 @@
+{% if escuderias %}
+    <ul>
+    {% for escuderia in escuderias %}
+        <li><a href="./{{ escuderia.id }}/">{{ escuderia }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No hay grandes escuderias disponibles.</p>
+{% endif %}

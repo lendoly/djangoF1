@@ -3,6 +3,7 @@ from django.template import RequestContext, loader
 from django.http import HttpResponse
 from .models import Circuito, GranPremio
 from django.core.exceptions import ObjectDoesNotExist
+from Twitter.functions import busca
 
 
 # Create your views here.
@@ -28,6 +29,7 @@ def circuito_detail(request, circuito_id):
             'circuito': circuito,
             'circuito_id': circuito_id,
             }
+        busca(circuito.nombre)
         return render(request, 'circuitos/detail.html', context)
     except ObjectDoesNotExist:
         return render(request, 'circuitos/detail.html',

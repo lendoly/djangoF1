@@ -1,10 +1,7 @@
 from django.conf.urls import url
-
 from . import views
 
 urlpatterns = [
-    url(r'^$', views.twitter_login),
+    url(r'^logueado_twitter/?$', views.logueado_twitter, name="twitter_callback"),
     url(r'^login/?$', views.twitter_login),
-    url(r'^logout/?$', views.twitter_logout),
-    url(r'^login/authenticated/?$', views.twitter_authenticated),
 ]

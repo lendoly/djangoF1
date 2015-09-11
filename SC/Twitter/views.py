@@ -1,30 +1,18 @@
 from django.shortcuts import render
-import oauth2 as oauth
 from SC import settings
+from .models import *
+from twython import Twython
+from django.http import HttpResponse
+import oauth2 as oauth
 import cgi
 from django.http import HttpResponseRedirect
-from django.contrib.auth.models import User
-from .models import UsuarioTwitter
-from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
 
 consumer = oauth.Consumer(settings.TWITTER_CONSUMER_KEY,
                           settings.TWITTER_CONSUMER_SECRET)
-
-request_token_url = 'https://api.twitter.com/oauth/request_token'
-access_token_url = 'https://api.twitter.com/oauth/access_token'
-authorize_url = 'https://api.twitter.com/oauth/authorize'
-
-# This is the slightly different URL used to authenticate/authorize.
-authenticate_url = 'https://api.twitter.com/oauth/authenticate'
 client = oauth.Client(consumer)
+request_token_url = 'https://api.twitter.com/oauth/request_token'
+authenticate_url = 'https://api.twitter.com/oauth/authenticate'
 
-
-def main(request):
-    return twitter_authenticated(request=request, token=request.GET.get('oauth_verifier'))
-
-
-# Create your views here.
 def twitter_login(request):
 
      # Step 1. Get a request token from Twitter.
@@ -42,64 +30,64 @@ def twitter_login(request):
     return HttpResponseRedirect(url)
 
 
-@login_required
-def twitter_logout(request):
-    # Log a user out using Django's logout function and redirect them
-    # back to the homepage.
-    logout(request)
-    return HttpResponseRedirect('/')
-
-
-def twitter_authenticated(request, token=None):
-    # Step 1. Use the request token in the session to build a new client.
-    token = oauth.Token(request.session['request_token']['oauth_token'],
-                        request.session['request_token']['oauth_token_secret'])
-    token.set_verifier(request.GET['oauth_verifier'])
-    client = oauth.Client(consumer, token)
-
-    # Step 2. Request the authorized access token from Twitter.
-    resp, content = client.request(access_token_url, "GET")
-    print(resp['status'])
-    if resp['status'] != '200':
-        print content
-        raise Exception("Invalid response from Twitter.")
-
+def logueado_twitter(request, redirect_url=settings.LOGIN_REDIRECT_URL):
     """
-    This is what you'll get back from Twitter. Note that it includes the
-    user's user_id and screen_name.
-    {
-        'oauth_token_secret': 'IcJXPiJh8be3BjDWW50uCY31chyhsMHEhqJVsphC3M',
-        'user_id': '120889797',
-        'oauth_token': '120889797-H5zNnM3qE0iFoTTpNEHIz3noL9FKzXiOxwtnyVOD',
-        'screen_name': 'heyismysiteup'
-    }
-    """
-    access_token = dict(cgi.parse_qsl(content))
+        A user gets redirected here after hitting Twitter and authorizing your
+        app to use their data.
 
-    # Step 3. Lookup the user or create them if they don't exist.
+        ***
+            This is the view that stores the tokens you want
+            for querying data. Pay attention to this.
+        ***
+    """
+    # Now that we've got the magic tokens back from Twitter, we need to exchange
+    # for permanent ones and store them...
+
+    twitter = Twython(
+        app_key=settings.TWITTER_CONSUMER_KEY,
+        app_secret=settings.TWITTER_CONSUMER_SECRET,
+        oauth_token=request.session['request_token']['oauth_token'],
+        oauth_token_secret=request.session['request_token']['oauth_token_secret'],
+    )
+
+    # Retrieve the tokens we want...
     try:
-        user = User.objects.get(username=access_token['screen_name'])
-    except User.DoesNotExist:
-        # When creating the user I just use their screen_name@twitter.com
-        # for their email and the oauth_token_secret for their password.
-        # These two things will likely never be used. Alternatively, you 
-        # can prompt them for their email here. Either way, the password 
-        # should never be used.
-        user = User.objects.create_user(access_token['screen_name'],
-                                        '%s@twitter.com' % access_token['screen_name'],
-                                        access_token['oauth_token_secret'])
+        print('autorizando')
+        authorized_tokens = twitter.get_authorized_tokens(request.GET['oauth_verifier'])
+        print('AUTORIZADO!!!!!')
+    except BaseException:
+        request.session['fallo_login'] = "Tiene que acpetar la politica de la aplicacion."
+        return HttpResponse('<script type="text/javascript">window.close(); window.parent.location.href = "/";</script>')
+    usuario = UsuarioTwitter.objects.filter(id_twitter=authorized_tokens["user_id"])
+    if usuario is not None and len(usuario) > 0:
+        request.session["fallo_login"] = "Ya tiene esta cuenta asociada."
+        usuario = usuario[0]
+        usuario.screen_name = authorized_tokens['screen_name']
+        usuario.token = authorized_tokens['oauth_token']
+        usuario.token_secret = authorized_tokens['oauth_token_secret']
+        return HttpResponse('<script type="text/javascript">window.close(); window.parent.location.href = "/";</script>')
 
-        # Save our permanent token and secret for later.
-        profile = UsuarioTwitter()
-        profile.user = user
-        profile.oauth_token = access_token['oauth_token']
-        profile.oauth_secret = access_token['oauth_token_secret']
-        profile.save()
+    # If they already exist, grab them, login and redirect to a page displaying stuff.
+    try:
+        if User.objects.filter(username=authorized_tokens['screen_name']).exists():
+            user = User.objects.get(username=authorized_tokens['screen_name'])
+        else:
+            user = User.objects.get(username="luis")
 
-    # Authenticate the user and log them in using Django's pre-built 
-    # functions for these things.
-    user = authenticate(username=access_token['screen_name'],
-        password=access_token['oauth_token_secret'])
-    login(request, user)
+        usuario = UsuarioTwitter(
+            user=user,
+            screen_name=authorized_tokens['screen_name'],
+            token=authorized_tokens['oauth_token'],
+            token_secret=authorized_tokens['oauth_token_secret'],
+            id_twitter=authorized_tokens['user_id'],
+        )
+        usuario.save()
+        usuario_monitorizar.save()
+        request.session['oauth_token'] = authorized_tokens['oauth_token']
+        request.session['oauth_token_secret'] = authorized_tokens['oauth_token_secret']
+    except BaseException:
+        request.session['fallo_login'] = "Ha fallado la conexion con la BBDD, contacte con el administrador"
+        return HttpResponse('<script type="text/javascript">window.close(); window.parent.location.href = "/";</script>')
 
-    return HttpResponseRedirect('/')
+    request.session['networks_agregados'] = Network.objects.filter(cuenta=request.session['cuenta']).__len__()
+    return HttpResponse('<script type="text/javascript">window.close(); window.parent.location.href = "/";</script>')

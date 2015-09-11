@@ -1,4 +1,24 @@
-<ul>
-    <li><a href="./circuitos">Circuitos</a></li>
-    <li><a href="./grandes_premios">Grandes Premios</a></li>
-</ul>
+{% load staticfiles %}
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="{% static 'competicion/style.css' %}"/>
+    </head>
+    <body>
+        <div id="header">
+            <div id="header_titutlo">
+            <h1><a href="/">F1 Teoricos!!</a></h1>
+            </div>
+        </div>
+        
+        <div id="content">
+            <nav>
+                <ul>
+                    <li> <a href="./competicion/circuitos">Circuitos</a></li>
+                    <li> <a href="./competicion/grandes_premios">Grandes Premios</a> </li>
+                </ul>
+            <nav>  
+        </div>
+    </body>
+</html>
+

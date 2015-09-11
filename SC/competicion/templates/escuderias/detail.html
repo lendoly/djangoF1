@@ -1,0 +1,5 @@
+{% if escuderia %}
+    <h1> {{ escuderia.circuito }} - {{ escuderia.fecha }} </h1>
+{% else %}
+    <p>Error en la escuderia seleccionado con el id: {{escuderia_id}}.</p>
+{% endif %}
